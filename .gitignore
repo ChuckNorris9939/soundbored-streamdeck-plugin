@@ -1,0 +1,12 @@
+# Node.js
+node_modules/
+dist/
+
+# Stream Deck build & runtime logs
+*.sdPlugin/bin
+*.sdPlugin/logs
+
+# Local specification & agent skills
+streamdeck-plugin.md
+.agents/
+skills-lock.json

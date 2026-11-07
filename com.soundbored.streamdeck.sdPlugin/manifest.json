@@ -1,0 +1,155 @@
+{
+	"Name": "Soundbored",
+	"Version": "0.1.0.0",
+	"Author": "ChuckNorris9939",
+	"Actions": [
+		{
+			"Name": "Sound Slot",
+			"UUID": "com.soundbored.streamdeck.slot",
+			"Icon": "imgs/actions/slot/icon",
+			"Tooltip": "Shows one sound from the active list (Favorites or All) and plays it on press.",
+			"PropertyInspectorPath": "ui/settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/slot/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Manual Sound",
+			"UUID": "com.soundbored.streamdeck.custom",
+			"Icon": "imgs/actions/manual/icon",
+			"Tooltip": "Manually select a specific sound to pin to this key.",
+			"PropertyInspectorPath": "ui/manual.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/manual/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Toggle Favorites / All",
+			"UUID": "com.soundbored.streamdeck.mode",
+			"Icon": "imgs/actions/mode/icon",
+			"Tooltip": "Switches slots and Random playback between Favorites and All Sounds.",
+			"PropertyInspectorPath": "ui/settings.html",
+			"DisableAutomaticStates": true,
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Name": "Favorites",
+					"Image": "imgs/actions/mode/key-favs",
+					"TitleAlignment": "bottom",
+					"Title": "Favs"
+				},
+				{
+					"Name": "All Sounds",
+					"Image": "imgs/actions/mode/key-all",
+					"TitleAlignment": "bottom",
+					"Title": "All"
+				}
+			]
+		},
+		{
+			"Name": "Previous Page",
+			"UUID": "com.soundbored.streamdeck.prev-page",
+			"Icon": "imgs/actions/prev-page/icon",
+			"Tooltip": "Goes back to the previous page of sounds.",
+			"PropertyInspectorPath": "ui/settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/prev-page/key",
+					"TitleAlignment": "bottom",
+					"Title": "Prev"
+				}
+			]
+		},
+		{
+			"Name": "Next Page",
+			"UUID": "com.soundbored.streamdeck.page",
+			"Icon": "imgs/actions/page/icon",
+			"Tooltip": "Advances to the next page of sounds.",
+			"PropertyInspectorPath": "ui/settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/page/key",
+					"TitleAlignment": "bottom"
+				}
+			]
+		},
+		{
+			"Name": "Play Random",
+			"UUID": "com.soundbored.streamdeck.random",
+			"Icon": "imgs/actions/random/icon",
+			"Tooltip": "Plays a random sound in Discord (respects Favorites / All mode).",
+			"PropertyInspectorPath": "ui/random.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/random/key",
+					"TitleAlignment": "bottom",
+					"Title": "Random"
+				}
+			]
+		},
+		{
+			"Name": "Stop",
+			"UUID": "com.soundbored.streamdeck.stop",
+			"Icon": "imgs/actions/stop/icon",
+			"Tooltip": "Stops current soundboard playback.",
+			"PropertyInspectorPath": "ui/settings.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/stop/key",
+					"TitleAlignment": "bottom",
+					"Title": "Stop"
+				}
+			]
+		}
+	],
+	"Category": "Soundbored",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Plays sounds from your Soundbored Discord soundboard.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "com.soundbored.streamdeck"
+}

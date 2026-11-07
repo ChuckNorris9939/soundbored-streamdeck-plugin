@@ -1,0 +1,30 @@
+{
+	"name": "com.soundbored.streamdeck",
+	"version": "0.1.0",
+	"description": "Stream Deck plugin for Soundbored Discord soundboard",
+	"type": "module",
+	"scripts": {
+		"build": "rollup -c",
+		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.soundbored.streamdeck\"",
+		"pack": "npm run build && streamdeck pack com.soundbored.streamdeck.sdPlugin --output dist --force",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@elgato/cli": "^1.10.4",
+		"@rollup/plugin-commonjs": "^29.0.2",
+		"@rollup/plugin-node-resolve": "^15.2.2",
+		"@rollup/plugin-terser": "^1.0.0",
+		"@rollup/plugin-typescript": "^12.1.0",
+		"@tsconfig/node20": "^20.1.2",
+		"@types/node": "~24.1.0",
+		"rollup": "^4.0.2",
+		"tslib": "^2.6.2",
+		"typescript": "^5.7.3",
+		"vitest": "^3.0.0"
+	},
+	"dependencies": {
+		"@elgato/streamdeck": "^3.0.4"
+	}
+}

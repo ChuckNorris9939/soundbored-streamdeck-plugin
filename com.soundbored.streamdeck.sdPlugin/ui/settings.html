@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Soundbored Settings</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				font-size: 9pt;
+				color: #d8d8d8;
+				background-color: #2d2d2d;
+			}
+			body {
+				margin: 0;
+				padding: 12px 16px;
+			}
+			.sdpi-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 10px;
+				gap: 10px;
+			}
+			.sdpi-label {
+				width: 95px;
+				flex-shrink: 0;
+				text-align: right;
+				color: #9a9a9a;
+				user-select: none;
+			}
+			.sdpi-field {
+				flex: 1;
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+			input[type="text"],
+			input[type="password"] {
+				width: 100%;
+				box-sizing: border-box;
+				background: #3d3d3d;
+				border: 1px solid #4f4f4f;
+				border-radius: 3px;
+				color: #efefef;
+				padding: 5px 8px;
+				font-size: 9pt;
+				outline: none;
+			}
+			input[type="text"]:focus,
+			input[type="password"]:focus {
+				border-color: #6366f1;
+			}
+			input[type="range"] {
+				flex: 1;
+				accent-color: #6366f1;
+				cursor: pointer;
+			}
+			.range-val {
+				width: 24px;
+				text-align: right;
+				font-variant-numeric: tabular-nums;
+				color: #efefef;
+			}
+			hr {
+				border: none;
+				border-top: 1px solid #3f3f3f;
+				margin: 12px 0;
+			}
+			.hint {
+				margin-left: 105px;
+				font-size: 8pt;
+				color: #808080;
+				margin-top: -4px;
+				margin-bottom: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="maxLines">Text Lines</label>
+			<div class="sdpi-field">
+				<input id="maxLines" type="range" min="1" max="6" step="1" value="4" />
+				<span id="maxLinesVal" class="range-val">4</span>
+			</div>
+		</div>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="maxChars">Chars / Line</label>
+			<div class="sdpi-field">
+				<input id="maxChars" type="range" min="6" max="15" step="1" value="9" />
+				<span id="maxCharsVal" class="range-val">9</span>
+			</div>
+		</div>
+		<div class="hint">Applies globally to all Sound Slots immediately.</div>
+
+		<hr />
+
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="baseUrl">Server URL</label>
+			<div class="sdpi-field">
+				<input
+					id="baseUrl"
+					type="text"
+					value=""
+					placeholder="Soundbored Instanz-Adresse"
+					spellcheck="false"
+				/>
+			</div>
+		</div>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="token">API Token</label>
+			<div class="sdpi-field">
+				<input
+					id="token"
+					type="password"
+					placeholder="Paste Bearer API token"
+					spellcheck="false"
+					autocomplete="off"
+				/>
+			</div>
+		</div>
+		<div class="hint">Global settings shared across all Soundbored keys.</div>
+
+		<script>
+			const DEFAULT_BASE_URL = "";
+			const DEFAULT_MAX_LINES = 4;
+			const DEFAULT_MAX_CHARS = 9;
+
+			let websocket = null;
+			let piUUID = null;
+			let globalSettings = {
+				baseUrl: DEFAULT_BASE_URL,
+				token: "",
+				maxLines: DEFAULT_MAX_LINES,
+				maxChars: DEFAULT_MAX_CHARS
+			};
+
+			const maxLinesInput = document.getElementById("maxLines");
+			const maxLinesVal = document.getElementById("maxLinesVal");
+			const maxCharsInput = document.getElementById("maxChars");
+			const maxCharsVal = document.getElementById("maxCharsVal");
+			const baseUrlInput = document.getElementById("baseUrl");
+			const tokenInput = document.getElementById("token");
+
+			function saveGlobalSettings() {
+				maxLinesVal.textContent = maxLinesInput.value;
+				maxCharsVal.textContent = maxCharsInput.value;
+
+				if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+				const rawUrl = (baseUrlInput.value || DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
+				globalSettings = {
+					baseUrl: rawUrl || DEFAULT_BASE_URL,
+					token: (tokenInput.value || "").trim(),
+					maxLines: Number(maxLinesInput.value) || DEFAULT_MAX_LINES,
+					maxChars: Number(maxCharsInput.value) || DEFAULT_MAX_CHARS
+				};
+				websocket.send(
+					JSON.stringify({
+						event: "setGlobalSettings",
+						context: piUUID,
+						payload: globalSettings
+					})
+				);
+			}
+
+			maxLinesInput.addEventListener("input", saveGlobalSettings);
+			maxCharsInput.addEventListener("input", saveGlobalSettings);
+			baseUrlInput.addEventListener("change", saveGlobalSettings);
+			baseUrlInput.addEventListener("blur", saveGlobalSettings);
+			tokenInput.addEventListener("input", saveGlobalSettings);
+			tokenInput.addEventListener("change", saveGlobalSettings);
+
+			window.connectElgatoStreamDeckSocket = function (
+				inPort,
+				inPropertyInspectorUUID,
+				inRegisterEvent
+			) {
+				piUUID = inPropertyInspectorUUID;
+				websocket = new WebSocket("ws://127.0.0.1:" + inPort);
+
+				websocket.onopen = function () {
+					websocket.send(
+						JSON.stringify({
+							event: inRegisterEvent,
+							uuid: inPropertyInspectorUUID
+						})
+					);
+					websocket.send(
+						JSON.stringify({
+							event: "getGlobalSettings",
+							context: inPropertyInspectorUUID
+						})
+					);
+				};
+
+				websocket.onmessage = function (evt) {
+					try {
+						const msg = JSON.parse(evt.data);
+						if (msg.event === "didReceiveGlobalSettings") {
+							const payloadSettings = (msg.payload && msg.payload.settings) || {};
+							globalSettings = {
+								baseUrl: payloadSettings.baseUrl || DEFAULT_BASE_URL,
+								token: payloadSettings.token || "",
+								maxLines: Number(payloadSettings.maxLines) || DEFAULT_MAX_LINES,
+								maxChars: Number(payloadSettings.maxChars) || DEFAULT_MAX_CHARS
+							};
+							baseUrlInput.value = globalSettings.baseUrl;
+							tokenInput.value = globalSettings.token;
+							maxLinesInput.value = String(globalSettings.maxLines);
+							maxLinesVal.textContent = String(globalSettings.maxLines);
+							maxCharsInput.value = String(globalSettings.maxChars);
+							maxCharsVal.textContent = String(globalSettings.maxChars);
+
+							if (!payloadSettings.maxLines) {
+								saveGlobalSettings();
+							}
+						}
+					} catch (e) {
+						console.error("Failed to parse message", e);
+					}
+				};
+			};
+		</script>
+	</body>
+</html>

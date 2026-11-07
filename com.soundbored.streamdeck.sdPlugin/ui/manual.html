@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Manual Sound Settings</title>
+		<style>
+			:root {
+				color-scheme: dark;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				font-size: 9pt;
+				color: #d8d8d8;
+				background-color: #2d2d2d;
+			}
+			body {
+				margin: 0;
+				padding: 12px 16px;
+			}
+			.sdpi-row {
+				display: flex;
+				align-items: center;
+				margin-bottom: 10px;
+				gap: 10px;
+			}
+			.sdpi-label {
+				width: 95px;
+				flex-shrink: 0;
+				text-align: right;
+				color: #9a9a9a;
+				user-select: none;
+			}
+			.sdpi-field {
+				flex: 1;
+				display: flex;
+				gap: 6px;
+				align-items: center;
+			}
+			input[type="text"],
+			input[type="password"],
+			select {
+				width: 100%;
+				box-sizing: border-box;
+				background: #3d3d3d;
+				border: 1px solid #4f4f4f;
+				border-radius: 3px;
+				color: #efefef;
+				padding: 5px 8px;
+				font-size: 9pt;
+				outline: none;
+			}
+			input[type="text"]:focus,
+			input[type="password"]:focus,
+			select:focus {
+				border-color: #6366f1;
+			}
+			button {
+				background: #3d3d3d;
+				border: 1px solid #4f4f4f;
+				border-radius: 3px;
+				color: #efefef;
+				padding: 5px 8px;
+				font-size: 9pt;
+				cursor: pointer;
+				flex-shrink: 0;
+			}
+			button:hover {
+				background: #4a4a4a;
+			}
+			input[type="range"] {
+				flex: 1;
+				accent-color: #6366f1;
+				cursor: pointer;
+			}
+			.range-val {
+				width: 24px;
+				text-align: right;
+				font-variant-numeric: tabular-nums;
+				color: #efefef;
+			}
+			hr {
+				border: none;
+				border-top: 1px solid #3f3f3f;
+				margin: 12px 0;
+			}
+			.hint {
+				margin-left: 105px;
+				font-size: 8pt;
+				color: #808080;
+				margin-top: -4px;
+				margin-bottom: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="searchInput">Filter</label>
+			<div class="sdpi-field">
+				<input
+					id="searchInput"
+					type="text"
+					placeholder="Search sounds..."
+					spellcheck="false"
+				/>
+			</div>
+		</div>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="soundSelect">Sound</label>
+			<div class="sdpi-field">
+				<select id="soundSelect">
+					<option value="">-- Loading sounds... --</option>
+				</select>
+				<button id="reloadBtn" type="button" title="Reload sound list">↻</button>
+			</div>
+		</div>
+		<div id="statusHint" class="hint">Select a sound to pin to this button.</div>
+
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="customLabel">Custom Title</label>
+			<div class="sdpi-field">
+				<input
+					id="customLabel"
+					type="text"
+					placeholder="Optional (leave empty for sound name)"
+					spellcheck="false"
+				/>
+			</div>
+		</div>
+
+		<hr />
+
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="maxLines">Text Lines</label>
+			<div class="sdpi-field">
+				<input id="maxLines" type="range" min="1" max="6" step="1" value="4" />
+				<span id="maxLinesVal" class="range-val">4</span>
+			</div>
+		</div>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="maxChars">Chars / Line</label>
+			<div class="sdpi-field">
+				<input id="maxChars" type="range" min="6" max="15" step="1" value="9" />
+				<span id="maxCharsVal" class="range-val">9</span>
+			</div>
+		</div>
+
+		<hr />
+
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="baseUrl">Server URL</label>
+			<div class="sdpi-field">
+				<input
+					id="baseUrl"
+					type="text"
+					value=""
+					placeholder="Soundbored Instanz-Adresse"
+					spellcheck="false"
+				/>
+			</div>
+		</div>
+		<div class="sdpi-row">
+			<label class="sdpi-label" for="token">API Token</label>
+			<div class="sdpi-field">
+				<input
+					id="token"
+					type="password"
+					placeholder="Paste Bearer API token"
+					spellcheck="false"
+					autocomplete="off"
+				/>
+			</div>
+		</div>
+
+		<script>
+			const DEFAULT_BASE_URL = "";
+			const DEFAULT_MAX_LINES = 4;
+			const DEFAULT_MAX_CHARS = 9;
+
+			let websocket = null;
+			let piUUID = null;
+			let actionUUID = "com.soundbored.streamdeck.custom";
+			let allSounds = [];
+			let actionSettings = {
+				soundId: undefined,
+				soundName: "",
+				customLabel: ""
+			};
+			let globalSettings = {
+				baseUrl: DEFAULT_BASE_URL,
+				token: "",
+				maxLines: DEFAULT_MAX_LINES,
+				maxChars: DEFAULT_MAX_CHARS
+			};
+
+			const searchInput = document.getElementById("searchInput");
+			const soundSelect = document.getElementById("soundSelect");
+			const reloadBtn = document.getElementById("reloadBtn");
+			const statusHint = document.getElementById("statusHint");
+			const customLabelInput = document.getElementById("customLabel");
+			const maxLinesInput = document.getElementById("maxLines");
+			const maxLinesVal = document.getElementById("maxLinesVal");
+			const maxCharsInput = document.getElementById("maxChars");
+			const maxCharsVal = document.getElementById("maxCharsVal");
+			const baseUrlInput = document.getElementById("baseUrl");
+			const tokenInput = document.getElementById("token");
+
+			function renderSoundOptions() {
+				const query = (searchInput.value || "").trim().toLowerCase();
+				const filtered = query
+					? allSounds.filter((s) => (s.display_name || "").toLowerCase().includes(query))
+					: allSounds;
+
+				soundSelect.innerHTML = "";
+
+				const placeholder = document.createElement("option");
+				placeholder.value = "";
+				placeholder.textContent =
+					filtered.length > 0
+						? `-- Select sound (${filtered.length}) --`
+						: "-- No matching sounds --";
+				soundSelect.appendChild(placeholder);
+
+				const selectedId = actionSettings.soundId;
+				let foundSelected = false;
+
+				for (const s of filtered) {
+					const opt = document.createElement("option");
+					opt.value = String(s.id);
+					opt.textContent = (s.is_favorite ? "★ " : "") + s.display_name;
+					if (selectedId !== undefined && Number(s.id) === Number(selectedId)) {
+						opt.selected = true;
+						foundSelected = true;
+					}
+					soundSelect.appendChild(opt);
+				}
+
+				if (selectedId !== undefined && !foundSelected) {
+					const existing = allSounds.find((s) => Number(s.id) === Number(selectedId));
+					const fallbackName = existing ? existing.display_name : actionSettings.soundName;
+					if (fallbackName) {
+						const opt = document.createElement("option");
+						opt.value = String(selectedId);
+						opt.textContent = fallbackName;
+						opt.selected = true;
+						soundSelect.appendChild(opt);
+					}
+				}
+			}
+
+			function saveActionSettings() {
+				if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+				const selectedVal = soundSelect.value;
+				if (selectedVal) {
+					const idNum = Number(selectedVal);
+					const matched = allSounds.find((s) => Number(s.id) === idNum);
+					actionSettings.soundId = idNum;
+					if (matched) {
+						actionSettings.soundName = matched.display_name;
+					}
+				}
+				actionSettings.customLabel = customLabelInput.value || "";
+
+				websocket.send(
+					JSON.stringify({
+						event: "setSettings",
+						context: piUUID,
+						payload: actionSettings
+					})
+				);
+			}
+
+			function saveGlobalSettings() {
+				maxLinesVal.textContent = maxLinesInput.value;
+				maxCharsVal.textContent = maxCharsInput.value;
+
+				if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+				const rawUrl = (baseUrlInput.value || DEFAULT_BASE_URL).trim().replace(/\/+$/, "");
+				globalSettings = {
+					baseUrl: rawUrl || DEFAULT_BASE_URL,
+					token: (tokenInput.value || "").trim(),
+					maxLines: Number(maxLinesInput.value) || DEFAULT_MAX_LINES,
+					maxChars: Number(maxCharsInput.value) || DEFAULT_MAX_CHARS
+				};
+				websocket.send(
+					JSON.stringify({
+						event: "setGlobalSettings",
+						context: piUUID,
+						payload: globalSettings
+					})
+				);
+			}
+
+			function requestSoundList(force) {
+				if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+				statusHint.textContent = "Loading sounds from server...";
+				websocket.send(
+					JSON.stringify({
+						event: "sendToPlugin",
+						action: actionUUID,
+						context: piUUID,
+						payload: { action: "loadSounds", force: !!force }
+					})
+				);
+			}
+
+			searchInput.addEventListener("input", renderSoundOptions);
+			soundSelect.addEventListener("change", saveActionSettings);
+			customLabelInput.addEventListener("input", saveActionSettings);
+			customLabelInput.addEventListener("change", saveActionSettings);
+			reloadBtn.addEventListener("click", function () {
+				requestSoundList(true);
+			});
+
+			maxLinesInput.addEventListener("input", saveGlobalSettings);
+			maxCharsInput.addEventListener("input", saveGlobalSettings);
+			baseUrlInput.addEventListener("change", function () {
+				saveGlobalSettings();
+				requestSoundList(true);
+			});
+			tokenInput.addEventListener("change", function () {
+				saveGlobalSettings();
+				requestSoundList(true);
+			});
+
+			window.connectElgatoStreamDeckSocket = function (
+				inPort,
+				inPropertyInspectorUUID,
+				inRegisterEvent,
+				inInfo,
+				inActionInfo
+			) {
+				piUUID = inPropertyInspectorUUID;
+				try {
+					const parsedAction = JSON.parse(inActionInfo);
+					if (parsedAction && parsedAction.action) {
+						actionUUID = parsedAction.action;
+					}
+					const initialSettings =
+						(parsedAction && parsedAction.payload && parsedAction.payload.settings) || {};
+					actionSettings = {
+						soundId: initialSettings.soundId,
+						soundName: initialSettings.soundName || "",
+						customLabel: initialSettings.customLabel || ""
+					};
+					customLabelInput.value = actionSettings.customLabel;
+				} catch (e) {
+					console.error("Failed to parse inActionInfo", e);
+				}
+
+				websocket = new WebSocket("ws://127.0.0.1:" + inPort);
+
+				websocket.onopen = function () {
+					websocket.send(
+						JSON.stringify({
+							event: inRegisterEvent,
+							uuid: inPropertyInspectorUUID
+						})
+					);
+					websocket.send(
+						JSON.stringify({
+							event: "getGlobalSettings",
+							context: inPropertyInspectorUUID
+						})
+					);
+					websocket.send(
+						JSON.stringify({
+							event: "getSettings",
+							context: inPropertyInspectorUUID
+						})
+					);
+					requestSoundList(false);
+				};
+
+				websocket.onmessage = function (evt) {
+					try {
+						const msg = JSON.parse(evt.data);
+						if (msg.event === "didReceiveGlobalSettings") {
+							const payloadSettings = (msg.payload && msg.payload.settings) || {};
+							globalSettings = {
+								baseUrl: payloadSettings.baseUrl || DEFAULT_BASE_URL,
+								token: payloadSettings.token || "",
+								maxLines: Number(payloadSettings.maxLines) || DEFAULT_MAX_LINES,
+								maxChars: Number(payloadSettings.maxChars) || DEFAULT_MAX_CHARS
+							};
+							baseUrlInput.value = globalSettings.baseUrl;
+							tokenInput.value = globalSettings.token;
+							maxLinesInput.value = String(globalSettings.maxLines);
+							maxLinesVal.textContent = String(globalSettings.maxLines);
+							maxCharsInput.value = String(globalSettings.maxChars);
+							maxCharsVal.textContent = String(globalSettings.maxChars);
+
+							if (!payloadSettings.maxLines) {
+								saveGlobalSettings();
+							}
+						} else if (msg.event === "didReceiveSettings") {
+							const payloadSettings = (msg.payload && msg.payload.settings) || {};
+							actionSettings = {
+								soundId: payloadSettings.soundId,
+								soundName: payloadSettings.soundName || "",
+								customLabel: payloadSettings.customLabel || ""
+							};
+							customLabelInput.value = actionSettings.customLabel;
+							renderSoundOptions();
+						} else if (msg.event === "sendToPropertyInspector" && msg.payload) {
+							if (msg.payload.event === "soundList" && Array.isArray(msg.payload.sounds)) {
+								allSounds = msg.payload.sounds;
+								statusHint.textContent = `Loaded ${allSounds.length} sounds. ★ = Favorite`;
+								renderSoundOptions();
+							} else if (msg.payload.event === "soundListError") {
+								statusHint.textContent = msg.payload.message || "Failed to load sounds";
+							}
+						}
+					} catch (e) {
+						console.error("Failed to parse message", e);
+					}
+				};
+			};
+		</script>
+	</body>
+</html>
